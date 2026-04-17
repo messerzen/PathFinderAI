@@ -3,6 +3,8 @@ import sys
 from dotenv import load_dotenv
 from crewai import Agent
 
+from src.workflow_crewai.tools.database_tools import search_local_routes
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv()
 
@@ -10,8 +12,6 @@ load_dotenv()
 # We pass the model name directly as a string, and CrewAI handles it via LiteLLM.
 # It will automatically use the GEMINI_API_KEY or GOOGLE_API_KEY from your .env file.
 llm_model = "gemini/gemini-3.1-flash-lite-preview"
-
-from src.workflow_crewai.tools.database_tools import search_local_routes
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Agent 1 — Profiler

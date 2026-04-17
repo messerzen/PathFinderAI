@@ -1,5 +1,8 @@
 name: Release on PR Merge
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   pull_request:
     types: [closed]
@@ -34,7 +37,7 @@ jobs:
           pip install ruff
 
       - name: Run Ruff linter (gate before release)
-        run: ruff check src/ scratch/ --output-format=github
+        run: ruff check src/ scripts/ --output-format=github
 
       - name: Determine next version (semver bump)
         id: version
