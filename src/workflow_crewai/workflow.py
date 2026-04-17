@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from datetime import datetime
 from dotenv import load_dotenv
@@ -20,9 +21,20 @@ from src.validator import validate_and_clean
 load_dotenv()
 
 
+def _parse_requested_route_count(prompt: str, default: int = 5) -> int:
+    """Extract the number of routes the user wants from their prompt."""
+    match = re.search(r'(\d+)\s*(routes?|options?|suggestions?|rides?|results?)', prompt, re.IGNORECASE)
+    if match:
+        return max(1, int(match.group(1)))
+    return default
+
+
 def run_workflow(user_prompt: str):
     # ── 0. Sync latest Strava data ────────────────────────────────────────────
     sync_activities()
+
+    # ── Parse requested number of routes (default: 5) ────────────────────────
+    n_routes = _parse_requested_route_count(user_prompt)
 
     # ── Setup dynamic logging ─────────────────────────────────────────────────
     logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
@@ -49,7 +61,8 @@ def run_workflow(user_prompt: str):
             "• outdoor_only: true / false\n"
             "• prefer_flat: true / false\n"
             "• target_calories (kcal, if mentioned)\n"
-            "• suffer_score preference (if mentioned)"
+            "• suffer_score preference (if mentioned)\n"
+            f"• requested_routes: {n_routes} (the user wants {n_routes} route recommendations)"
         ),
         expected_output=(
             "A structured list of extracted constraints with values and units. "
@@ -90,9 +103,9 @@ def run_workflow(user_prompt: str):
             "• Exclude indoor/virtual unless user requested indoor\n"
             "• Apply all active filters from the validated constraints\n"
             "• Order intelligently based on the user's goal (flat → elevation_gain ASC, hard day → suffer_score DESC)\n"
-            "• LIMIT 5 (the Critic will pick the best 3)"
+            f"• LIMIT {n_routes + 2} to give the Critic enough candidates to select the best {n_routes}"
         ),
-        expected_output="The raw SQL results from search_local_routes (up to 5 routes with all requested fields).",
+        expected_output=f"The raw SQL results from search_local_routes (up to {n_routes + 2} routes with all requested fields).",
         agent=evaluator_agent,
         context=[validate_task],
     )
@@ -102,17 +115,18 @@ def run_workflow(user_prompt: str):
         description=(
             "Review the SQL results from the Evaluator.\n\n"
             "Check:\n"
-            "1. Are there at least 3 results? If fewer, the query is too strict.\n"
+            f"1. Are there at least {n_routes} results? If fewer, the query is too strict.\n"
             "2. Are the routes meaningfully diverse in distance/elevation profile? "
             "   If all are virtually identical, the ranking needs adjustment.\n"
             "3. Did the query return 0 results? The constraints need relaxing.\n\n"
             "If results are poor, use search_local_routes to retry with relaxed constraints "
             "(widen distance window by 20%, raise elevation cap by 50%, remove heartrate/suffer_score filters). "
+            "Always maintain the bike type filters (sport_type) even when relaxing other constraints. "
             "Retry up to 2 times. "
-            "Output the final curated shortlist of exactly 3 routes with all rich fields."
+            f"Output the final curated shortlist of exactly {n_routes} routes with all rich fields."
         ),
         expected_output=(
-            "A curated shortlist of exactly 3 routes, each including: strava_id, name, distance, "
+            f"A curated shortlist of exactly {n_routes} routes, each including: strava_id, name, distance, "
             "elevation_gain, moving_time, suffer_score, calories, average_heartrate, "
             "weighted_average_watts, pr_count, and a note on why it was selected."
         ),
@@ -130,7 +144,7 @@ def run_workflow(user_prompt: str):
             "• NEVER invent, guess, modify, or generate any strava_id. If a strava_id is not explicitly \n"
             "  present in the data you received, do not create a Strava link for that route.\n"
             "• The Strava link format is: https://www.strava.com/activities/<strava_id>\n\n"
-            "For each of the 3 routes include:\n"
+            f"For each of the {n_routes} routes include:\n"
             "• Route name as heading with a Strava link using the EXACT strava_id from the data\n"
             "• Distance (km) and Elevation Gain (m) — use EXACT values from the data\n"
             "• Estimated calorie burn — use EXACT value from the data\n"
@@ -141,7 +155,7 @@ def run_workflow(user_prompt: str):
             "Do NOT show raw SQL, database field names, or any data not present in the Critic's output."
         ),
         expected_output=(
-            "A polished Markdown document with 3 route recommendations using ONLY data from the Critic's output. "
+            f"A polished Markdown document with {n_routes} route recommendations using ONLY data from the Critic's output. "
             "Each route has a verified Strava link (exact strava_id from data), calorie/suffer score, and a Best-for tag."
         ),
         agent=presenter_agent,
