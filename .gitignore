@@ -3,6 +3,21 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# ── PathFinderAI project-specific ────────────────────────────────────────────
+# Sensitive / personal data — never commit
+.env
+strava_data.db
+data/
+logs/
+*.log
+
+# Virtual environments
+.venv/
+.venv3_11/
+
+# Scratch outputs
+scratch/__pycache__/
+
 # C extensions
 *.so
 

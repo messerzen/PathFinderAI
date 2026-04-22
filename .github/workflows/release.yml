@@ -1,119 +1,18 @@
-name: Release on PR Merge
+name: Release Please
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
 
 permissions:
-  contents: write   # needed to push tags, commits, and create GitHub Release
+  contents: write
+  pull-requests: write
 
 jobs:
-  release:
-    name: Tag, Changelog & GitHub Release
-    # Only run when the PR is actually merged (not just closed/abandoned)
-    if: github.event.pull_request.merged == true
+  release-please:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: google-github-actions/release-please-action@v4
         with:
-          fetch-depth: 0   # full history needed for tag detection
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install ruff
-
-      - name: Run Ruff linter (gate before release)
-        run: ruff check src/ scratch/ --output-format=github
-
-      - name: Determine next version (semver bump)
-        id: version
-        run: |
-          # Get the latest tag, default to v0.0.0 if none exist
-          LATEST=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
-          if [ -z "$LATEST" ]; then
-            LATEST="v0.0.0"
-          fi
-          echo "Latest tag: $LATEST"
-
-          # Bump patch version by default
-          # If PR title or branch contains 'breaking' or 'major', bump major
-          # If PR title or branch contains 'feat' or 'feature', bump minor
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_BRANCH="${{ github.event.pull_request.head.ref }}"
-
-          MAJOR=$(echo $LATEST | sed 's/v\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\1/')
-          MINOR=$(echo $LATEST | sed 's/v\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\2/')
-          PATCH=$(echo $LATEST | sed 's/v\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\3/')
-
-          if echo "$PR_TITLE $PR_BRANCH" | grep -qiE 'breaking|major'; then
-            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
-          elif echo "$PR_TITLE $PR_BRANCH" | grep -qiE 'feat|feature|minor'; then
-            MINOR=$((MINOR + 1)); PATCH=0
-          else
-            PATCH=$((PATCH + 1))
-          fi
-
-          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "New version: $NEW_VERSION"
-          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "VERSION_NUM=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_OUTPUT
-
-      - name: Update CHANGELOG.md
-        id: changelog
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION_NUM }}"
-          DATE=$(date +%Y-%m-%d)
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_URL="${{ github.event.pull_request.html_url }}"
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-
-          # Build new changelog entry
-          NEW_ENTRY="## [${VERSION}] - ${DATE}\n\n### Changes\n- ${PR_TITLE} ([#${PR_NUMBER}](${PR_URL})) by @${PR_AUTHOR}\n"
-
-          # Prepend the new entry after the first line (# Changelog header)
-          awk -v entry="$NEW_ENTRY" 'NR==1{print; print ""; printf "%s", entry; next} NR==2 && /^$/{next} {print}' CHANGELOG.md > CHANGELOG.tmp
-          mv CHANGELOG.tmp CHANGELOG.md
-
-          echo "Changelog updated for $VERSION"
-
-      - name: Commit CHANGELOG and push tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "chore(release): bump to ${{ steps.version.outputs.VERSION }} [skip ci]"
-          git tag ${{ steps.version.outputs.VERSION }}
-          git push origin HEAD:main
-          git push origin ${{ steps.version.outputs.VERSION }}
-
-      - name: Extract changelog section for release notes
-        run: |
-          VERSION_NUM="${{ steps.version.outputs.VERSION_NUM }}"
-          BODY=$(awk "/^## \[${VERSION_NUM}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-          if [ -z "$BODY" ]; then
-            BODY="See CHANGELOG.md for details."
-          fi
-          echo "$BODY" > release_notes.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.VERSION }}
-          name: "PathFinderAI ${{ steps.version.outputs.VERSION }}"
-          body_path: release_notes.txt
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          release-type: python

@@ -1,0 +1,73 @@
+name: CI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-check:
+    name: Lint & Import Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements_crewai.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ruff pytest
+          pip install -r requirements_crewai.txt
+          pip install -e .
+
+      - name: Run Ruff linter
+        run: |
+          ruff check src/ scripts/ --output-format=github
+
+      - name: Check Python syntax (all files)
+        run: |
+          find src scripts -name "*.py" | xargs python -m py_compile
+          echo "All Python files have valid syntax."
+
+      - name: Verify core module imports
+        env:
+          # Provide dummy values so dotenv doesn't fail the import check
+          GEMINI_API_KEY: dummy
+          STRAVA_CLIENT_ID: dummy
+          STRAVA_CLIENT_SECRET: dummy
+          STRAVA_REFRESH_TOKEN: dummy
+        run: |
+          python -c "from src.database import Activity, Base; print('database.py OK')"
+          python -c "from src.validator import validate_and_clean; print('validator.py OK')"
+          echo "Core imports verified."
+
+      - name: Run Pytest
+        env:
+          GEMINI_API_KEY: dummy
+          STRAVA_CLIENT_ID: dummy
+          STRAVA_CLIENT_SECRET: dummy
+          STRAVA_REFRESH_TOKEN: dummy
+        run: |
+          pytest tests/
