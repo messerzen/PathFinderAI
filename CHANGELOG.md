@@ -5,6 +5,21 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## 0.1.0 (2026-04-22)
+
+
+### Features
+
+* Add mandatory core logic, workflows, and modernize CI/CD ([bf6f051](https://github.com/messerzen/PathFinderAI/commit/bf6f051eb42059254c4b7e7ac63f203db7af7b94))
+* add scripts/full_sync.py and dynamic route count in workflow ([8d18ae4](https://github.com/messerzen/PathFinderAI/commit/8d18ae4d84a5bbd4b7afe47496e6f688f8caec9c))
+* bike-type filtering (MTB/Gravel/Road) and CI/CD release on PR merge ([7ab8195](https://github.com/messerzen/PathFinderAI/commit/7ab81955c6bdfd708e9b12186686137bdcda6ac2))
+
+
+### Documentation
+
+* add code_of_conduct and contributing ([6e3a5ec](https://github.com/messerzen/PathFinderAI/commit/6e3a5ec69946f283f3c6f5a952b9ffd699afa5e0))
+* update README, ARCHITECTURE, and SETUP to reflect full project ([df5e010](https://github.com/messerzen/PathFinderAI/commit/df5e0100d5245ee46465cb29c54a20a179edd1d1))
+
 ## [Unreleased]
 
 ---
