@@ -9,6 +9,10 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-check:
     name: Lint & Import Check
@@ -34,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install ruff
+          pip install ruff pytest
           pip install -r requirements_crewai.txt
 
       - name: Run Ruff linter
@@ -57,3 +61,12 @@ jobs:
           python -c "from src.database import Activity, Base; print('database.py OK')"
           python -c "from src.validator import validate_and_clean; print('validator.py OK')"
           echo "Core imports verified."
+
+      - name: Run Pytest
+        env:
+          GEMINI_API_KEY: dummy
+          STRAVA_CLIENT_ID: dummy
+          STRAVA_CLIENT_SECRET: dummy
+          STRAVA_REFRESH_TOKEN: dummy
+        run: |
+          pytest tests/
