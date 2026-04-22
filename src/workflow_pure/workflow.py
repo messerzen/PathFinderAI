@@ -16,9 +16,6 @@ from google import genai
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-load_dotenv()
-
 from src.validator import validate_and_clean
 
 DB_PATH    = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "strava_data.db")
@@ -30,6 +27,7 @@ MAX_CRITIC_RETRIES = 2
 # ── Utilities ─────────────────────────────────────────────────────────────────
 
 def get_client() -> genai.Client:
+    load_dotenv()
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
         print("Error: GEMINI_API_KEY not found in .env")

@@ -31,14 +31,13 @@ import sqlite3
 import requests
 import gpxpy.gpx
 from datetime import datetime, timezone
-
-# ── Path setup ───────────────────────────────────────────────────────────────
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(ROOT)
+from sqlalchemy.exc import IntegrityError
 
 from src.auth import get_strava_access_token
 from src.database import Base, engine, get_session, Activity
-from sqlalchemy.exc import IntegrityError
+
+# ── Path setup ───────────────────────────────────────────────────────────────
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ── Directories ──────────────────────────────────────────────────────────────
 BIKE_GPX_DIR = os.path.join(ROOT, "data", "bike")

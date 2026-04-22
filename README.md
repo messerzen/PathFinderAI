@@ -85,7 +85,7 @@ Two parallel implementations are provided:
 | **Anti-hallucination** | Post-generation validator regex-scans every Strava link and strips fake IDs |
 | **Dynamic route count** | Returns 5 routes by default; parses user requests like "give me 3 options" |
 | **Rate-limit-aware** | Reads `X-ReadRateLimit` headers and sleeps to the next 15-min window automatically |
-| **Auto-release CI/CD** | Merging a PR to `main` triggers semver bump, CHANGELOG update, and GitHub Release |
+| **Auto-release CI/CD** | Merging a PR to `main` triggers Release Please for semver bump, CHANGELOG update, and GitHub Release |
 
 ---
 
@@ -122,6 +122,7 @@ python -m venv .venv3_11
 # source .venv3_11/bin/activate     # macOS/Linux
 
 pip install -r requirements_crewai.txt
+pip install -e .                    # Install the project as a local package
 ```
 
 ### 2. Configure Environment
@@ -196,8 +197,11 @@ PathFinderAI/
 │   └── SETUP.md                        # Strava OAuth + Gemini API setup walkthrough
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                      # Lint + syntax + import check on push/PR
-│       └── release.yml                 # Auto-tag + CHANGELOG + GitHub Release on PR merge
+│       ├── ci.yml                      # Lint + tests + import check on push/PR
+│       └── release.yml                 # Release Please (Auto-tag + CHANGELOG on PR merge)
+├── tests/
+│   └── test_basic.py                   # Pytest suite
+├── pyproject.toml                      # Python package configuration
 ├── .env.example                        # Template for environment variables
 ├── requirements_crewai.txt             # CrewAI workflow dependencies
 ├── requirements_pure.txt               # Pure Python workflow dependencies
@@ -214,22 +218,22 @@ PathFinderAI/
 pip install ruff
 ruff check src/ scripts/
 
-# Verify core imports
-python -c "from src.workflow_crewai.agents import profiler_agent; print('Agents OK')"
-python -c "from src.database import Activity, Base; print('DB model OK')"
+# Run tests
+pip install pytest
+pytest tests/
 ```
 
 ### CI/CD
 
 Every PR to `main` runs:
 1. **Ruff linter** — enforces code style
-2. **Syntax check** — validates all `.py` files compile
-3. **Import check** — verifies core modules load without errors
+2. **Import check** — verifies core modules load without errors
+3. **Pytest** — runs the test suite
 
 When a PR is **merged** to `main`:
-1. Semver is auto-bumped (patch by default; minor if `feat` in PR title; major if `breaking`)
-2. `CHANGELOG.md` is updated with the PR title and author
-3. A git tag and GitHub Release are created automatically
+1. **Release Please** reads your Conventional Commits (e.g., `feat: ...`, `fix: ...`).
+2. It automatically opens a Release PR with a bumped version number and updated `CHANGELOG.md`.
+3. When you merge the Release PR, a git tag and GitHub Release are created automatically.
 
 ---
 

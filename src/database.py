@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, JSON, BigInteger
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, JSON
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "strava_data.db")
