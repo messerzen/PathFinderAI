@@ -11,3 +11,8 @@ requires-python = ">=3.11"
 
 [tool.setuptools]
 packages = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
