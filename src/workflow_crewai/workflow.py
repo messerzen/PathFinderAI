@@ -99,7 +99,7 @@ def run_workflow(user_prompt: str):
             "against the 'activities' SQLite table using the search_local_routes tool.\n\n"
             "Rules:\n"
             "• Always include in SELECT: strava_id, name, distance, elevation_gain, moving_time, "
-            "  suffer_score, calories, average_heartrate, weighted_average_watts, pr_count\n"
+            "  suffer_score, calories, average_heartrate, weighted_average_watts, pr_count, gpx_path\n"
             "• Exclude indoor/virtual unless user requested indoor\n"
             "• Apply all active filters from the validated constraints\n"
             "• Order intelligently based on the user's goal (flat → elevation_gain ASC, hard day → suffer_score DESC)\n"
@@ -119,16 +119,20 @@ def run_workflow(user_prompt: str):
             "2. Are the routes meaningfully diverse in distance/elevation profile? "
             "   If all are virtually identical, the ranking needs adjustment.\n"
             "3. Did the query return 0 results? The constraints need relaxing.\n\n"
+            "4. Are the routes too similar? Use the 'Analyze GPX Similarity' tool (execute_gpx_similarity_analysis) to check your shortlisted routes.\n"
+            "   The path of the gpx file is stored in the 'gpx_path' column.\n"
+            "   If any two routes have an overlap score of 65% (0.65) or higher, they are too similar.\n"
+            "   In that case, keep only one of the similar routes, discard the other, and use search_local_routes to find a distinct alternative.\n"
             "If results are poor, use search_local_routes to retry with relaxed constraints "
             "(widen distance window by 20%, raise elevation cap by 50%, remove heartrate/suffer_score filters). "
             "Always maintain the bike type filters (sport_type) even when relaxing other constraints. "
-            "Retry up to 2 times. "
+            "Retry up to 3 times. "
             f"Output the final curated shortlist of exactly {n_routes} routes with all rich fields."
         ),
         expected_output=(
             f"A curated shortlist of exactly {n_routes} routes, each including: strava_id, name, distance, "
             "elevation_gain, moving_time, suffer_score, calories, average_heartrate, "
-            "weighted_average_watts, pr_count, and a note on why it was selected."
+            "weighted_average_watts, pr_count, gpx_path, and a note on why it was selected."
         ),
         agent=reflection_critic_agent,
         context=[evaluate_task],
@@ -147,6 +151,7 @@ def run_workflow(user_prompt: str):
             f"For each of the {n_routes} routes include:\n"
             "• Route name as heading with a Strava link using the EXACT strava_id from the data\n"
             "• Distance (km) and Elevation Gain (m) — use EXACT values from the data\n"
+            "• Duration  — use EXACT values from the moving_time column\n"
             "• Estimated calorie burn — use EXACT value from the data\n"
             "• Suffer score and what it means for today's energy level\n"
             "• Heart rate zone insight (if average_heartrate available in the data)\n"
@@ -192,8 +197,10 @@ if __name__ == "__main__":
         exit(1)
 
     sample_prompt = (
-        "I would like to do a outdoor mountain bike ride tomorrow morning. I'm planning to start about 7:00 AM, "
-        "but I need to be at home at 10 AM. I want more flat routes that don't have too much elevation gain. I want to ride outdoors. "
-        "I want to cover high distance instead of high elevation."
+        """
+        I would like to do a outdoor mountain bike ride tomorrow morning. I'm planning to start about 6:30 AM,
+        but I need to be at home at 9:30 AM. I'm feeling great, so I can deal with higher efforts. 
+        I want to ride for at least 2 hours
+        """
     )
     run_workflow(sample_prompt)
