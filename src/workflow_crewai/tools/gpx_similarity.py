@@ -3,7 +3,6 @@ import logging
 from typing import List, Dict, Tuple
 import gpxpy
 import numpy as np
-import glob
 from crewai.tools import tool
 
 
