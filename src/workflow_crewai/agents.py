@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from crewai import Agent
 
 from src.workflow_crewai.tools.database_tools import search_local_routes
+from src.workflow_crewai.tools.gpx_similarity import execute_gpx_similarity_analysis
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv()
@@ -69,7 +70,7 @@ evaluator_agent = Agent(
         "- If unspecified: include all bike types. "
         "Always exclude indoor activities (`sport_type` = 'VirtualRide' or trainer=1) unless the user explicitly requests an indoor ride. "
         "Always include strava_id, name, distance, elevation_gain, moving_time, suffer_score, calories, "
-        "average_heartrate, weighted_average_watts, and pr_count in your SELECT clause. "
+        "average_heartrate, weighted_average_watts, pr_count, and gpx_path in your SELECT clause. "
         "Order intelligently: flat rides → ORDER BY elevation_gain ASC; hard days → ORDER BY suffer_score DESC; "
         "recovery → ORDER BY suffer_score ASC. Always LIMIT to 5 candidates for the Critic to review."
     ),
@@ -98,7 +99,7 @@ reflection_critic_agent = Agent(
     llm=llm_model,
     verbose=True,
     allow_delegation=False,
-    tools=[search_local_routes],
+    tools=[search_local_routes, execute_gpx_similarity_analysis],
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
